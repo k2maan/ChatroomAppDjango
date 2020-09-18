@@ -1,0 +1,68 @@
+<!-- chat/templates/chat/room.html -->
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>Chat Room</title>
+
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+</head>
+
+<body>
+  <div class="pt-5 container">
+    <div class="row justify-content-md-center" style="color: rgb(16, 57, 95);">
+      <h1>k2maan's Chatroom.</h1>
+    </div>
+    <div class="md-form mb-4">
+      <textarea id="chat-log" class="md-textarea form-control" rows="10"></textarea>
+    </div>
+    <input class="form-control" id="chat-message-input" type="text" size="100"><br>
+    <input class="btn btn-primary mb-2 btn-block" id="chat-message-submit" type="button" value="Send">
+    <div> logged in as {{user}} </div>
+  </div>
+
+  {{ room_name|json_script:"room-name" }}
+  {{ request.user.username|json_script:"user_username" }}
+  <script>
+    const user_username = JSON.parse(document.getElementById('user_username').textContent);
+    const roomName = JSON.parse(document.getElementById('room-name').textContent);
+
+    const chatSocket = new WebSocket(
+      'ws://' +
+      window.location.host +
+      '/ws/chat/' +
+      roomName +
+      '/'
+    );
+
+    chatSocket.onmessage = function (e) {
+      const data = JSON.parse(e.data);
+      document.querySelector('#chat-log').value += (data.username + ':' + data.message + '\n');
+    };
+
+    chatSocket.onclose = function (e) {
+      console.error('Chat socket closed unexpectedly');
+    };
+
+    document.querySelector('#chat-message-input').focus();
+    document.querySelector('#chat-message-input').onkeyup = function (e) {
+      if (e.keyCode === 13) { // enter, return
+        document.querySelector('#chat-message-submit').click();
+      }
+    };
+
+    document.querySelector('#chat-message-submit').onclick = function (e) {
+      const messageInputDom = document.querySelector('#chat-message-input');
+      const message = messageInputDom.value;
+      chatSocket.send(JSON.stringify({
+        'message': message,
+        'username': user_username,
+      }));
+      messageInputDom.value = '';
+    };
+  </script>
+</body>
+
+</html>
